@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<title>Dynamedia</title>
+<style>
+/* ===== BASE (AeroGlass UI Kit — Frutiger Aero) ===== */
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%}
+body{
+  font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;
+  -webkit-font-smoothing:antialiased;color:#07405E;
+  display:flex;flex-direction:column;height:100vh;overflow:hidden;
+  background:linear-gradient(135deg,#E3F4FDFF 0%,#D895D9F6 30%,#D24DBBEC 60%,#D267D0C4 82%,#D897DC5F 100%);
+  background-attachment:fixed;
+}
+
+/* ===== ANIMATIONS ===== */
+@keyframes pulse{0%,100%{opacity:.22}50%{opacity:.35}}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-12px)}}
+@keyframes fadeUp{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:translateY(0)}}
+
+/* ===== DECORATIVE BUBBLES ===== */
+.bubble{position:fixed;border-radius:50%;pointer-events:none;z-index:0}
+.bubble-lg{width:320px;height:320px;left:-70px;bottom:8%;opacity:.30;
+  background:radial-gradient(circle at 35% 30%,#fff 0%,#BFE9FB 55%,transparent 100%);
+  animation:pulse 6s ease-in-out infinite}
+.bubble-md{width:400px;height:400px;right:-90px;top:-70px;opacity:.26;
+  background:radial-gradient(circle at 35% 30%,#fff 0%,#7CCBEE 58%,transparent 100%);
+  animation:pulse 8s ease-in-out infinite 1s}
+.bubble-sm{width:190px;height:190px;left:32%;bottom:4%;opacity:.22;
+  background:radial-gradient(circle at 35% 30%,#fff 0%,#B6E77A 60%,transparent 100%);
+  animation:float 7s ease-in-out infinite}
+
+/* ===== TOP GLOSS ===== */
+.top-gloss{position:fixed;top:0;left:0;right:0;height:130px;z-index:0;pointer-events:none;
+  background:linear-gradient(to bottom,rgba(255,255,255,.55) 0%,rgba(255,255,255,.22) 55%,transparent 100%)}
+
+/* ===== HEADER (toolbar de navegación) ===== */
+header{
+  position:relative;z-index:2;display:flex;gap:10px;padding:10px 16px;align-items:center;
+  background:rgba(255,255,255,.38);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+  border-bottom:1px solid rgba(255,255,255,.55);
+}
+.nav-btn{
+  width:38px;height:38px;border-radius:50%;border:1px solid rgba(255,255,255,.5);
+  background:rgba(255,255,255,.5);backdrop-filter:blur(6px);cursor:pointer;
+  display:flex;align-items:center;justify-content:center;flex:none;
+  transition:background .2s,transform .1s;
+}
+.nav-btn:hover{background:rgba(255,255,255,.85)}
+.nav-btn:active{transform:scale(.92)}
+.nav-btn svg{width:17px;height:17px;fill:#07405E}
+
+#url{
+  flex:1;height:40px;padding:0 16px;border-radius:20px;border:1px solid rgba(255,255,255,.5);
+  background:rgba(255,255,255,.55);backdrop-filter:blur(8px);font-family:inherit;font-size:13.5px;
+  color:#07405E;outline:none;transition:border-color .2s,box-shadow .2s,background .2s;
+}
+#url::placeholder{color:#2C5F7E;opacity:.6}
+#url:focus{border-color:rgba(31,134,200,.5);background:rgba(255,255,255,.75);
+  box-shadow:0 0 0 3px rgba(31,134,200,.12)}
+
+#stats{
+  flex:none;font-size:11.5px;font-weight:600;color:#07405E;padding:6px 14px;border-radius:14px;
+  background:rgba(255,255,255,.4);border:1px solid rgba(255,255,255,.45);
+  backdrop-filter:blur(6px);white-space:nowrap;
+}
+#stats b{color:#B63B22}
+
+/* ===== TOOLBAR (acciones) ===== */
+#toolbar{
+  position:relative;z-index:2;display:flex;gap:10px;padding:8px 16px;align-items:center;
+  background:rgba(255,255,255,.2);border-bottom:1px solid rgba(255,255,255,.4);
+}
+.btn-gloss{
+  display:inline-flex;align-items:center;justify-content:center;gap:7px;
+  height:34px;padding:0 18px;border:none;border-radius:9px;
+  font-family:inherit;font-size:12.5px;font-weight:600;color:#fff;cursor:pointer;
+  position:relative;overflow:hidden;
+  background:linear-gradient(to bottom,#8FD9F7 0%,#39A5DC 49%,#1B7FC0 51%,#39B0E4 100%);
+  box-shadow:0 2px 12px rgba(10,58,86,.28);border:1px solid rgba(255,255,255,.35);
+  transition:transform .1s,opacity .15s,box-shadow .2s;
+}
+.btn-gloss::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:14px;border-radius:8px 8px 14px 14px;
+  background:linear-gradient(to bottom,rgba(255,255,255,.72) 0%,rgba(255,255,255,.22) 48%,transparent 50%);
+  pointer-events:none;
+}
+.btn-gloss:hover{box-shadow:0 2px 16px rgba(10,58,86,.35);border-color:rgba(255,255,255,.7)}
+.btn-gloss:active{transform:translateY(1px);opacity:.88}
+.btn-gloss.green{background:linear-gradient(to bottom,#CBF08F 0%,#74C23C 49%,#4E9C22 51%,#7FCF43 100%)}
+.btn-gloss.red{background:linear-gradient(to bottom,#FFB6A6 0%,#DD5C3E 49%,#B63B22 51%,#E0704F 100%)}
+.btn-gloss svg{width:14px;height:14px;fill:currentColor;position:relative}
+
+/* ===== MAIN ===== */
+main{flex:1;display:flex;min-height:0;position:relative;z-index:1}
+#view{
+  flex:1;margin:10px 0 10px 10px;border-radius:14px;overflow:hidden;
+  box-shadow:0 2px 16px rgba(10,58,86,.28);border:1px solid rgba(255,255,255,.5);
+  background:#fff;
+}
+webview{width:100%;height:100%;border:none}
+
+/* ===== SIDE PANEL ===== */
+#side{
+  width:290px;flex:none;margin:10px;display:flex;flex-direction:column;border-radius:14px;
+  border:1px solid rgba(255,255,255,.5);overflow:hidden;
+  background:linear-gradient(to bottom,rgba(237,255,255,.93) 0%,rgba(196,255,255,.77) 45%,rgba(176,235,248,.95) 100%);
+  box-shadow:0 2px 16px rgba(10,58,86,.28);
+  backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+  animation:fadeUp .5s ease-out both;
+}
+#side h3{
+  font-size:14px;font-weight:300;color:#07405E;padding:12px 16px;
+  border-bottom:1px solid rgba(255,255,255,.55);letter-spacing:.3px;
+}
+#mediaList{flex:1;overflow:auto;padding:10px}
+#mediaList::-webkit-scrollbar{width:8px}
+#mediaList::-webkit-scrollbar-thumb{background:rgba(31,134,200,.35);border-radius:4px}
+
+.item{
+  display:flex;align-items:center;gap:8px;padding:8px;border-radius:10px;margin-bottom:8px;
+  background:rgba(255,255,255,.45);border:1px solid rgba(255,255,255,.5);
+  backdrop-filter:blur(6px);transition:background .2s,transform .2s;
+}
+.item:hover{background:rgba(255,255,255,.7);transform:translateX(3px)}
+.item img{width:46px;height:46px;object-fit:cover;border-radius:8px;flex:none;background:#BFE9FB;
+  border:1px solid rgba(255,255,255,.6)}
+.item .thumb-video{width:46px;height:46px;border-radius:8px;flex:none;display:flex;align-items:center;
+  justify-content:center;background:linear-gradient(to bottom,#8FD9F7 0%,#39A5DC 49%,#1B7FC0 51%,#39B0E4 100%);
+  box-shadow:0 2px 8px rgba(10,58,86,.2);font-size:18px}
+.item .meta{flex:1;min-width:0;font-size:11.5px}
+.item .meta .name{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#07405E;font-weight:600}
+.item .meta .kind{color:#2C5F7E;font-size:10.5px;margin-top:2px}
+.item button{
+  flex:none;height:28px;padding:0 12px;border:none;border-radius:8px;cursor:pointer;
+  font-family:inherit;font-size:11px;font-weight:600;color:#fff;position:relative;overflow:hidden;
+  background:linear-gradient(to bottom,#CBF08F 0%,#74C23C 49%,#4E9C22 51%,#7FCF43 100%);
+  border:1px solid rgba(255,255,255,.35);box-shadow:0 1px 8px rgba(10,58,86,.25);
+  transition:transform .1s,opacity .15s;
+}
+.item button::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:11px;
+  border-radius:7px 7px 10px 10px;
+  background:linear-gradient(to bottom,rgba(255,255,255,.72) 0%,rgba(255,255,255,.22) 48%,transparent 50%);
+  pointer-events:none;
+}
+.item button:hover{box-shadow:0 2px 12px rgba(10,58,86,.3)}
+.item button:active{transform:translateY(1px)}
+.item button:disabled{opacity:.75;cursor:default}
+
+.empty{
+  color:#2C5F7E;font-size:12px;padding:18px 12px;text-align:center;line-height:1.6;
+  background:rgba(255,255,255,.3);border-radius:10px;border:1px dashed rgba(255,255,255,.6);
+}
+</style>
+</head>
+<body>
+
+<!-- Decorative layers (AeroGlass) -->
+<div class="top-gloss"></div>
+<div class="bubble bubble-lg"></div>
+<div class="bubble bubble-md"></div>
+<div class="bubble bubble-sm"></div>
+
+<header>
+  <button class="nav-btn" id="back" title="Atrás">
+    <svg viewBox="0 0 24 24"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/></svg>
+  </button>
+  <button class="nav-btn" id="fwd" title="Adelante">
+    <svg viewBox="0 0 24 24"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/></svg>
+  </button>
+  <button class="nav-btn" id="reload" title="Recargar">
+    <svg viewBox="0 0 24 24"><path d="M17.65 6.35A7.958 7.958 0 0 0 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08A5.99 5.99 0 0 1 12 18c-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>
+  </button>
+  <input id="url" placeholder="Escribe una URL y pulsa Enter" spellcheck="false" />
+  <span id="stats">Anuncios bloqueados: <b>0</b></span>
+</header>
+
+<div id="toolbar">
+  <button class="btn-gloss" id="scan">
+    <svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.47 6.47 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+    Escanear medios
+  </button>
+  <button class="btn-gloss red" id="clear">
+    <svg viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
+    Limpiar
+  </button>
+</div>
+
+<main>
+  <div id="view">
+    <webview id="web" src="https://duckduckgo.com" allowpopups="true"></webview>
+  </div>
+  <aside id="side">
+    <h3>Medios detectados</h3>
+    <div id="mediaList"><div class="empty">Pulsa &laquo;Escanear medios&raquo; para buscar im&aacute;genes y videos en la p&aacute;gina actual.</div></div>
+  </aside>
+</main>
+
+<script>
+  const $ = (s) => document.querySelector(s);
+  const web = $('#web');
+  const list = $('#mediaList');
+
+  function normalizeUrl(input) {
+    let u = input.trim();
+    if (!u) return null;
+    if (!/^https?:\/\//i.test(u)) u = 'https://' + u;
+    try { return new URL(u).href; } catch { return null; }
+  }
+
+  $('#url').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      const u = normalizeUrl(e.target.value);
+      if (u) web.loadURL(u);
+    }
+  });
+  web.addEventListener('did-navigate', () => { $('#url').value = web.getURL(); });
+  web.addEventListener('dom-ready', () => { $('#url').value = web.getURL(); });
+  web.addEventListener('page-title-updated', (e) => { document.title = 'Dynamedia — ' + e.title; });
+  web.addEventListener('did-fail-load', (e) => {
+    if (e.errorCode !== -3) console.error('Fallo al cargar:', e.errorCode, e.errorDescription, e.validatedURL);
+  });
+
+  $('#back').onclick = () => web.goBack();
+  $('#fwd').onclick = () => web.goForward();
+  $('#reload').onclick = () => web.reload();
+
+  if (window.dynamedia) {
+    dynamedia.onStats((s) => { $('#stats').querySelector('b').textContent = s.blocked; });
+    dynamedia.getStats().then((s) => { $('#stats').querySelector('b').textContent = s.blocked; });
+    dynamedia.onOpenUrl((url) => {
+      const u = normalizeUrl(url);
+      if (u) { web.loadURL(u); $('#url').value = u; }
+    });
+  }
+
+  // Escaneo de medios (funcionalidad de la extensión Media-downloader)
+  $('#scan').onclick = async () => {
+    list.innerHTML = '<div class="empty">Escaneando&hellip;</div>';
+    try {
+      const result = await web.executeJavaScript(`(() => {
+        const found = [];
+        const seen = new Set();
+        const add = (url, kind, extra) => {
+          if (!url || seen.has(url)) return;
+          if (!/^https?:\\/\\//i.test(url)) return;
+          if (/^data:|blob:/i.test(url)) return;
+          seen.add(url);
+          const m = { url, kind, name: decodeURIComponent(url.split('/').pop().split('?')[0] || 'media') };
+          if (extra) Object.assign(m, extra);
+          found.push(m);
+        };
+        document.querySelectorAll('img').forEach((img) => {
+          const u = img.currentSrc || img.src;
+          if (u) add(u, 'photo', { w: img.naturalWidth || 0, h: img.naturalHeight || 0 });
+        });
+        document.querySelectorAll('video, video source').forEach((v) => {
+          const u = v.src || v.currentSrc;
+          if (u) add(u, 'video');
+        });
+        document.querySelectorAll('a[href]').forEach((a) => {
+          const u = a.href;
+          if (/\\.(jpe?g|png|gif|webp|bmp|avif|svg)([?#]|$)/i.test(u)) add(u, 'photo');
+          else if (/\\.(mp4|webm|mkv|mov|m4v|avi|flv)([?#]|$)/i.test(u)) add(u, 'video');
+        });
+        document.querySelectorAll('[style*="background-image"]').forEach((el) => {
+          const m = /url\\(["']?(.*?)["']?\\)/.exec(el.style.backgroundImage);
+          if (m) add(m[1], 'photo');
+        });
+        return found;
+      })()`);
+      renderList(result || []);
+    } catch (err) {
+      list.innerHTML = '<div class="empty">No se pudo escanear esta p&aacute;gina.</div>';
+    }
+  };
+
+  $('#clear').onclick = () => {
+    list.innerHTML = '<div class="empty">Sin resultados.</div>';
+  };
+
+  function renderList(items) {
+    if (!items.length) {
+      list.innerHTML = '<div class="empty">No se encontraron medios en esta p&aacute;gina.</div>';
+      return;
+    }
+    list.innerHTML = '';
+    for (const m of items) {
+      const div = document.createElement('div');
+      div.className = 'item';
+      const thumb = m.kind === 'photo'
+        ? `<img src="${m.url}" onerror="this.style.visibility='hidden'">`
+        : `<div class="thumb-video">&#127909;</div>`;
+      const dims = m.w && m.h ? ` &middot; ${m.w}x${m.h}` : '';
+      div.innerHTML = `${thumb}
+        <div class="meta">
+          <div class="name" title="${m.url}">${escapeHtml(m.name)}</div>
+          <div class="kind">${m.kind === 'photo' ? 'Foto' : 'Video'}${dims}</div>
+        </div>
+        <button title="Descargar">&#8681;</button>`;
+      div.querySelector('button').onclick = () => download(m, div.querySelector('button'));
+      list.appendChild(div);
+    }
+  }
+
+  async function download(m, btn) {
+    btn.disabled = true;
+    btn.textContent = '...';
+    try {
+      const res = await dynamedia.downloadMedia(m.url);
+      btn.textContent = res.ok ? 'OK' : 'X';
+      btn.title = res.ok ? 'Guardado en: ' + res.path : (res.error || 'Error');
+    } catch {
+      btn.textContent = 'X';
+    }
+  }
+
+  function escapeHtml(s) {
+    return s.replace(/[&<>"']/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+</script>
+<div style="position:fixed;bottom:6px;right:12px;z-index:10;font-size:11px;opacity:.45;pointer-events:auto;">
+  <a href="../LICENSE.md" target="_blank" rel="noopener" style="color:#07405E;text-decoration:none;">© 2026 Nicol & Claude — Términos</a>
+</div>
+</body>
+</html>

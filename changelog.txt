@@ -1,0 +1,12 @@
+DYNAMEDIA - CHANGELOG
+======================
+
+[0.1.0] — 2026-09 (Initial)
+
+AÑADIDO:
+- Commit inicial del proyecto Dynamedia.
+- Estructura base del proyecto establecida.
+
+NOTAS:
+- Proyecto en fase inicial de desarrollo.
+- Sin funcionalidades documentadas adicionales aún.

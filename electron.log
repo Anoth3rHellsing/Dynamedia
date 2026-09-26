@@ -1,0 +1,32 @@
+
+[3148:0918/183259.786:INFO:CONSOLE(2)] "%cElectron Security Warning (Insecure Content-Security-Policy) font-weight: bold; This renderer process has either no Content Security
+  Policy set or a policy with "unsafe-eval" enabled. This exposes users of
+  this app to unnecessary security risks.
+
+For more information and help, consult
+https://electronjs.org/docs/tutorial/security.
+This warning will not show up
+once the app is packaged.", source: node:electron/js2c/sandbox_bundle (2)
+[3148:0918/183259.786:INFO:CONSOLE(2)] "%cElectron Security Warning (allowpopups) font-weight: bold; A <webview> has "allowpopups" set to true. This exposes
+    users of this app to some security risk, since popups are just
+    BrowserWindows. If you do not need this feature, you should disable it.
+
+    
+For more information and help, consult
+https://electronjs.org/docs/tutorial/security.
+This warning will not show up
+once the app is packaged.", source: node:electron/js2c/sandbox_bundle (2)
+[3148:0918/183300.869:INFO:CONSOLE(2)] "%cElectron Security Warning (Insecure Content-Security-Policy) font-weight: bold; This renderer process has either no Content Security
+  Policy set or a policy with "unsafe-eval" enabled. This exposes users of
+  this app to unnecessary security risks.
+
+For more information and help, consult
+https://electronjs.org/docs/tutorial/security.
+This warning will not show up
+once the app is packaged.", source: node:electron/js2c/sandbox_bundle (2)
+[3148:0918/183304.130:INFO:CONSOLE(0)] "The resource https://duckduckgo.com/static-assets/image/sad/chrome/chrome-2-dark-es-ES.png was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally.", source: https://duckduckgo.com/ (0)
+[3148:0918/183304.130:INFO:CONSOLE(0)] "The resource https://duckduckgo.com/static-assets/image/sad/chrome/chrome-1-dark-es-ES.png was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally.", source: https://duckduckgo.com/ (0)
+[3148:0918/183304.130:INFO:CONSOLE(0)] "The resource https://duckduckgo.com/static-assets/image/sad/chrome/chrome-3-dark-es-ES.png was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally.", source: https://duckduckgo.com/ (0)
+[3148:0918/183307.164:INFO:CONSOLE(0)] "The resource https://duckduckgo.com/static-assets/image/sad/chrome/chrome-2-dark-es-ES.png was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally.", source: https://duckduckgo.com/ (0)
+[3148:0918/183307.164:INFO:CONSOLE(0)] "The resource https://duckduckgo.com/static-assets/image/sad/chrome/chrome-1-dark-es-ES.png was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally.", source: https://duckduckgo.com/ (0)
+[3148:0918/183307.164:INFO:CONSOLE(0)] "The resource https://duckduckgo.com/static-assets/image/sad/chrome/chrome-3-dark-es-ES.png was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally.", source: https://duckduckgo.com/ (0)

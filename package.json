@@ -1,0 +1,30 @@
+{
+  "name": "dynamedia",
+  "version": "1.0.0",
+  "description": "Navegador con bloqueo de anuncios, anti-redirecciones y descargas de medios separadas en Fotos/Videos",
+  "main": "main.js",
+  "author": "Dynamedia",
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder --win portable"
+  },
+  "build": {
+    "appId": "com.dynamedia.app",
+    "productName": "Dynamedia",
+    "files": [
+      "main.js",
+      "preload.js",
+      "adblocker.js",
+      "renderer/**/*"
+    ],
+    "win": {
+      "target": [
+        "portable"
+      ]
+    }
+  },
+  "devDependencies": {
+    "electron": "^44.4.5",
+    "electron-builder": "^24.13.3"
+  }
+}

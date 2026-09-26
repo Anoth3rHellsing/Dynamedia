@@ -1,0 +1,33 @@
+Dynamedia — QA Analysis
+Date: 2026-09-26
+Stack: Electron 44 + Custom adblocker + Media classification
+
+## Development Progress
+- Multi-window browser shell with webviewTag support for isolated browsing.
+- Ad blocker integration with stats broadcasting across all windows.
+- Anti-redirect system with configurable whitelist for legitimate OAuth/SPAs.
+- Automatic media download classification into Fotos/Videos/Otros folders.
+- Permission request handler restricting notifications, geolocation, MIDI, clipboard.
+- IPC handlers for navigation, media download, and stats retrieval.
+- Portable Windows build configuration.
+
+## Improvement Opportunities
+
+### High Priority
+1. **Ad blocker maintenance**: The `adblocker.js` module is custom-built. Maintaining filter lists manually is unsustainable. Integrate @cliqz/adblocker-electron or similar library that supports EasyList/EasyPrivacy auto-updates.
+2. **Security hardening**: webviewTag is enabled, which has known security risks. Audit CSP headers, disable remote code execution in webviews, and consider migrating to BrowserView or iframe with sandbox attributes.
+3. **Download path traversal**: `item.getFilename()` is used directly in path construction without sanitization. A malicious filename like `../../evil.exe` could escape the intended directory. Sanitize filenames and validate resolved paths stay within base.
+
+### Medium Priority
+4. **Whitelist management**: REDIRECT_WHITELIST is hardcoded. Move to a user-editable config file so users can add domains without rebuilding.
+5. **Memory leak risk**: `shellWindows` Set tracks windows but relies on 'closed' event cleanup. If a window crashes or is destroyed abnormally, entries may persist. Add periodic cleanup or WeakRef tracking.
+6. **Error handling in downloads**: `ses.downloadURL(url)` doesn't handle failures. Add error listeners for download interruptions, network errors, and invalid URLs.
+7. **Stats persistence**: Blocked count resets on restart. Persist to localStorage or a JSON file for continuity across sessions.
+8. **HTTPS enforcement**: No HSTS or HTTPS-only mode. Consider upgrading HTTP requests to HTTPS where possible and warning on insecure content.
+
+### Low Priority
+9. **Tab state management**: Each URL opens a new window. Add tab support within windows for better UX and reduced resource usage.
+10. **User agent rotation**: Some sites block Electron's default UA. Allow configurable user agent strings.
+11. **Extension support**: Modern browsers support extensions. Consider limited WebExtension API compatibility for user-installed blockers/themes.
+12. **Testing**: No test files found. Add unit tests for classifyMedia, isWhitelistedRedirect, and download path sanitization logic.
+13. **Localization**: UI strings appear Spanish-only. Extract to locale files if international distribution is planned.
