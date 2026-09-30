@@ -6,7 +6,8 @@
   "author": "Dynamedia",
   "scripts": {
     "start": "electron .",
-    "dist": "electron-builder --win portable"
+    "dist": "electron-builder --win portable",
+    "build:linux": "electron-builder --linux"
   },
   "build": {
     "appId": "com.dynamedia.app",
@@ -21,10 +22,20 @@
       "target": [
         "portable"
       ]
+    },
+    "linux": {
+      "target": [
+        "AppImage"
+      ],
+      "category": "Network"
     }
   },
   "devDependencies": {
     "electron": "^44.4.5",
     "electron-builder": "^24.13.3"
+  },
+  "dependencies": {
+    "config-file-ts": "^0.2.8-rc1",
+    "stat-mode": "^1.0.0"
   }
 }
