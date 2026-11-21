@@ -26,6 +26,10 @@ function downloadsBase() {
   return base;
 }
 
+function isShellContents(contents) {
+  return [...shellWindows].some((w) => !w.isDestroyed() && w.webContents === contents);
+}
+
 function createWindow(initialUrl) {
   const w = new BrowserWindow({
     width: 1280,
@@ -35,6 +39,7 @@ function createWindow(initialUrl) {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
       nodeIntegration: false,
+      sandbox: true,
       webviewTag: true,
     },
   });
@@ -80,8 +85,7 @@ app.whenReady().then(() => {
     item.setSavePath(path.join(dir, item.getFilename()));
   });
 
-  // Anti-redirección global: capturar apertura de ventanas/pestañas emergentes
-  // Whitelist configurable de dominios permitidos para redirecciones legítimas (OAuth, SPAs)
+  // Dominios de redirección legítima (OAuth) que pueden navegar en ventanas emergentes.
   const REDIRECT_WHITELIST = new Set([
     'accounts.google.com',
     'login.microsoftonline.com',
@@ -110,6 +114,25 @@ app.whenReady().then(() => {
       }
       return { action: 'deny' };
     });
+
+    // Webviews: solo la shell puede incrustarlos, y siempre con preferencias seguras.
+    contents.on('will-attach-webview', (event, webPreferences, params) => {
+      if (!isShellContents(contents)) { event.preventDefault(); return; }
+      delete webPreferences.preload;
+      delete webPreferences.preloadURL;
+      webPreferences.nodeIntegration = false;
+      webPreferences.nodeIntegrationInSubFrames = false;
+      webPreferences.contextIsolation = true;
+      webPreferences.sandbox = true;
+      webPreferences.webSecurity = true;
+      webPreferences.allowRunningInsecureContent = false;
+      // Todos en la sesión por defecto, que es donde vive el bloqueador.
+      delete params.partition;
+      if (params.src && !/^https?:/i.test(params.src) && params.src !== 'about:blank') {
+        event.preventDefault();
+      }
+    });
+
     // Bloquear navegaciones de contenidos emergentes (típica redirección de anuncio).
     // Se permite navegar a las ventanas de Dynamedia, a los webviews que hospedan,
     // y a dominios en la whitelist de redirecciones legítimas.
@@ -124,7 +147,7 @@ app.whenReady().then(() => {
         const hostUrl = host.getURL ? host.getURL() : '';
         allowed = hostUrl.startsWith('file://') && hostUrl.endsWith('renderer/index.html');
       } else {
-        allowed = [...shellWindows].some((w) => !w.isDestroyed() && w.webContents === contents);
+        allowed = isShellContents(contents);
       }
       if (!allowed) e.preventDefault();
     });

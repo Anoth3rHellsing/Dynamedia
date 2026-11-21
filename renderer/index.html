@@ -2,6 +2,9 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8" />
+<!-- Sin scripts inline ni eval: todo el JS de la shell vive en renderer.js. Las miniaturas se
+     cargan de la web (http/https/data). El <webview> no queda sujeto a esta política. -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'unsafe-inline'; img-src http: https: data:; base-uri 'none'; form-action 'none'; object-src 'none'" />
 <title>Dynamedia</title>
 <style>
 /* ===== BASE (AeroGlass UI Kit — Frutiger Aero) ===== */
@@ -199,129 +202,7 @@ webview{width:100%;height:100%;border:none}
   </aside>
 </main>
 
-<script>
-  const $ = (s) => document.querySelector(s);
-  const web = $('#web');
-  const list = $('#mediaList');
-
-  function normalizeUrl(input) {
-    let u = input.trim();
-    if (!u) return null;
-    if (!/^https?:\/\//i.test(u)) u = 'https://' + u;
-    try { return new URL(u).href; } catch { return null; }
-  }
-
-  $('#url').addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') {
-      const u = normalizeUrl(e.target.value);
-      if (u) web.loadURL(u);
-    }
-  });
-  web.addEventListener('did-navigate', () => { $('#url').value = web.getURL(); });
-  web.addEventListener('dom-ready', () => { $('#url').value = web.getURL(); });
-  web.addEventListener('page-title-updated', (e) => { document.title = 'Dynamedia — ' + e.title; });
-  web.addEventListener('did-fail-load', (e) => {
-    if (e.errorCode !== -3) console.error('Fallo al cargar:', e.errorCode, e.errorDescription, e.validatedURL);
-  });
-
-  $('#back').onclick = () => web.goBack();
-  $('#fwd').onclick = () => web.goForward();
-  $('#reload').onclick = () => web.reload();
-
-  if (window.dynamedia) {
-    dynamedia.onStats((s) => { $('#stats').querySelector('b').textContent = s.blocked; });
-    dynamedia.getStats().then((s) => { $('#stats').querySelector('b').textContent = s.blocked; });
-    dynamedia.onOpenUrl((url) => {
-      const u = normalizeUrl(url);
-      if (u) { web.loadURL(u); $('#url').value = u; }
-    });
-  }
-
-  // Escaneo de medios (funcionalidad de la extensión Media-downloader)
-  $('#scan').onclick = async () => {
-    list.innerHTML = '<div class="empty">Escaneando&hellip;</div>';
-    try {
-      const result = await web.executeJavaScript(`(() => {
-        const found = [];
-        const seen = new Set();
-        const add = (url, kind, extra) => {
-          if (!url || seen.has(url)) return;
-          if (!/^https?:\\/\\//i.test(url)) return;
-          if (/^data:|blob:/i.test(url)) return;
-          seen.add(url);
-          const m = { url, kind, name: decodeURIComponent(url.split('/').pop().split('?')[0] || 'media') };
-          if (extra) Object.assign(m, extra);
-          found.push(m);
-        };
-        document.querySelectorAll('img').forEach((img) => {
-          const u = img.currentSrc || img.src;
-          if (u) add(u, 'photo', { w: img.naturalWidth || 0, h: img.naturalHeight || 0 });
-        });
-        document.querySelectorAll('video, video source').forEach((v) => {
-          const u = v.src || v.currentSrc;
-          if (u) add(u, 'video');
-        });
-        document.querySelectorAll('a[href]').forEach((a) => {
-          const u = a.href;
-          if (/\\.(jpe?g|png|gif|webp|bmp|avif|svg)([?#]|$)/i.test(u)) add(u, 'photo');
-          else if (/\\.(mp4|webm|mkv|mov|m4v|avi|flv)([?#]|$)/i.test(u)) add(u, 'video');
-        });
-        document.querySelectorAll('[style*="background-image"]').forEach((el) => {
-          const m = /url\\(["']?(.*?)["']?\\)/.exec(el.style.backgroundImage);
-          if (m) add(m[1], 'photo');
-        });
-        return found;
-      })()`);
-      renderList(result || []);
-    } catch (err) {
-      list.innerHTML = '<div class="empty">No se pudo escanear esta p&aacute;gina.</div>';
-    }
-  };
-
-  $('#clear').onclick = () => {
-    list.innerHTML = '<div class="empty">Sin resultados.</div>';
-  };
-
-  function renderList(items) {
-    if (!items.length) {
-      list.innerHTML = '<div class="empty">No se encontraron medios en esta p&aacute;gina.</div>';
-      return;
-    }
-    list.innerHTML = '';
-    for (const m of items) {
-      const div = document.createElement('div');
-      div.className = 'item';
-      const thumb = m.kind === 'photo'
-        ? `<img src="${m.url}" onerror="this.style.visibility='hidden'">`
-        : `<div class="thumb-video">&#127909;</div>`;
-      const dims = m.w && m.h ? ` &middot; ${m.w}x${m.h}` : '';
-      div.innerHTML = `${thumb}
-        <div class="meta">
-          <div class="name" title="${m.url}">${escapeHtml(m.name)}</div>
-          <div class="kind">${m.kind === 'photo' ? 'Foto' : 'Video'}${dims}</div>
-        </div>
-        <button title="Descargar">&#8681;</button>`;
-      div.querySelector('button').onclick = () => download(m, div.querySelector('button'));
-      list.appendChild(div);
-    }
-  }
-
-  async function download(m, btn) {
-    btn.disabled = true;
-    btn.textContent = '...';
-    try {
-      const res = await dynamedia.downloadMedia(m.url);
-      btn.textContent = res.ok ? 'OK' : 'X';
-      btn.title = res.ok ? 'Guardado en: ' + res.path : (res.error || 'Error');
-    } catch {
-      btn.textContent = 'X';
-    }
-  }
-
-  function escapeHtml(s) {
-    return s.replace(/[&<>"']/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-  }
-</script>
+<script src="renderer.js"></script>
 <div style="position:fixed;bottom:6px;right:12px;z-index:10;font-size:11px;opacity:.45;pointer-events:auto;">
   <a href="../LICENSE.md" target="_blank" rel="noopener" style="color:#07405E;text-decoration:none;">© 2026 Nicol & Claude — Términos</a>
 </div>
