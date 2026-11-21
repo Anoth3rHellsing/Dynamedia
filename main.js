@@ -9,6 +9,9 @@ const shellWindows = new Set();
 const VIDEO_EXT = new Set(['.mp4', '.webm', '.mkv', '.avi', '.mov', '.m4v', '.flv', '.wmv', '.3gp', '.mpg', '.mpeg', '.ts']);
 const IMAGE_EXT = new Set(['.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp', '.svg', '.avif', '.ico', '.tiff', '.heic']);
 
+// Un window.open solo se acepta si en ese webContents hubo un clic o una tecla hace menos de esto.
+const GESTURE_WINDOW_MS = 1000;
+
 function classifyMedia(url) {
   let p = '';
   try { p = new URL(url).pathname.toLowerCase(); } catch { return null; }
@@ -103,13 +106,28 @@ app.whenReady().then(() => {
     return false;
   }
 
+  // Último gesto del usuario (clic o tecla) por webContents. Electron no dice si un
+  // window.open vino de un clic, así que lo deducimos: sin gesto reciente, es un popup.
+  const lastGesture = new Map(); // webContents.id -> ms
   app.on('web-contents-created', (_e, contents) => {
-    contents.setWindowOpenHandler(({ url, disposition }) => {
-      // Clic central / target=_blank / window.open -> nueva ventana de Dynamedia.
-      // Redirecciones automáticas (popunder de anuncio) se deniegan, salvo whitelist.
+    const id = contents.id;
+    const mark = () => lastGesture.set(id, Date.now());
+    contents.on('before-input-event', (_ev, input) => {
+      if (input.type === 'keyDown') mark();
+    });
+    contents.on('input-event', (_ev, input) => {
+      if (input.type === 'mouseDown' || input.type === 'mouseUp' || input.type === 'keyDown' || input.type === 'gestureTap') mark();
+    });
+    contents.once('destroyed', () => lastGesture.delete(id));
+
+    // Ventanas emergentes: denegadas siempre como BrowserWindow suelta. Si hubo un gesto
+    // reciente (clic en target=_blank, clic central, Ctrl+clic) se abre como una ventana
+    // nueva de Dynamedia, con la misma shell y el mismo bloqueador.
+    contents.setWindowOpenHandler(({ url }) => {
       if (!/^https?:/i.test(url)) return { action: 'deny' };
-      const isUserClick = disposition === 'new-window' || disposition === 'foreground-tab' || disposition === 'background-tab' || disposition === 'middle-click' || disposition === 'other';
-      if (isUserClick || isWhitelistedRedirect(url)) {
+      const t = lastGesture.get(id);
+      if (t !== undefined && Date.now() - t <= GESTURE_WINDOW_MS) {
+        lastGesture.delete(id); // un gesto, una ventana
         setImmediate(() => createWindow(url));
       }
       return { action: 'deny' };
