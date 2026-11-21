@@ -28,12 +28,41 @@ function classifyMedia(url) {
   return null;
 }
 
+// Carpeta de destino: primero lo que dijo el escáner, luego el tipo MIME, luego la extensión.
+function folderFor({ kind, mime, filename }) {
+  if (kind === 'video') return 'Videos';
+  if (kind === 'photo') return 'Fotos';
+  const m = String(mime || '').toLowerCase();
+  if (m.startsWith('video/')) return 'Videos';
+  if (m.startsWith('image/')) return 'Fotos';
+  const ext = path.extname(filename || '').toLowerCase();
+  if (VIDEO_EXT.has(ext)) return 'Videos';
+  if (IMAGE_EXT.has(ext)) return 'Fotos';
+  return 'Otros';
+}
+
 function downloadsBase() {
   const base = path.join(app.getPath('downloads'), 'Dynamedia');
   for (const d of ['Fotos', 'Videos']) {
     fs.mkdirSync(path.join(base, d), { recursive: true });
   }
   return base;
+}
+
+// Nombre libre en la carpeta: «foto.jpg», «foto (1).jpg», «foto (2).jpg»…
+// `reserved` evita que dos descargas simultáneas elijan el mismo nombre.
+const reservedPaths = new Set();
+function uniquePath(dir, filename) {
+  const safe = path.basename(filename || '') || 'descarga';
+  const ext = path.extname(safe);
+  const stem = safe.slice(0, safe.length - ext.length) || 'descarga';
+  for (let n = 0; ; n++) {
+    const candidate = path.join(dir, n === 0 ? safe : `${stem} (${n})${ext}`);
+    if (!reservedPaths.has(candidate) && !fs.existsSync(candidate)) {
+      reservedPaths.add(candidate);
+      return candidate;
+    }
+  }
 }
 
 function isShellContents(contents) {
@@ -124,16 +153,25 @@ app.whenReady().then(() => {
     return permissionDecisions.get(`${origin}|${permission}`) === true;
   });
 
-  // 3) Descargas separadas por tipo
+  // 3) Descargas separadas por tipo, sin sobrescribir archivos con el mismo nombre.
   const base = downloadsBase();
+  const pendingMedia = new Map(); // url -> { kind, resolve }
   ses.on('will-download', (_event, item) => {
-    const ext = path.extname(item.getFilename()).toLowerCase();
-    let dir;
-    if (VIDEO_EXT.has(ext)) dir = path.join(base, 'Videos');
-    else if (IMAGE_EXT.has(ext)) dir = path.join(base, 'Fotos');
-    else dir = path.join(base, 'Otros');
+    const chain = item.getURLChain ? item.getURLChain() : [item.getURL()];
+    const pendingUrl = [item.getURL(), ...chain].find((u) => pendingMedia.has(u));
+    const pending = pendingUrl ? pendingMedia.get(pendingUrl) : null;
+    if (pending) { pendingMedia.delete(pendingUrl); pending.started(); }
+
+    const dir = path.join(base, folderFor({ kind: pending && pending.kind, mime: item.getMimeType(), filename: item.getFilename() }));
     fs.mkdirSync(dir, { recursive: true });
-    item.setSavePath(path.join(dir, item.getFilename()));
+    const savePath = uniquePath(dir, item.getFilename());
+    item.setSavePath(savePath);
+    item.once('done', (_e, state) => {
+      reservedPaths.delete(savePath);
+      if (!pending) return;
+      if (state === 'completed') pending.resolve({ ok: true, kind: pending.kind, path: savePath });
+      else pending.resolve({ ok: false, error: state === 'cancelled' ? 'Descarga cancelada' : 'La descarga falló' });
+    });
   });
 
   // Dominios de redirección legítima (OAuth) que pueden navegar en ventanas emergentes.
@@ -223,11 +261,31 @@ app.whenReady().then(() => {
     for (const w of shellWindows) if (!w.isDestroyed()) w.webContents.send('navigate-url', url);
   });
 
-  ipcMain.handle('download-media', (_e, url) => {
-    const kind = classifyMedia(url);
-    if (!kind) return { ok: false, error: 'Tipo no reconocido (ni imagen ni video)' };
-    ses.downloadURL(url);
-    return { ok: true, kind };
+  ipcMain.handle('download-media', (_e, url, kind) => {
+    let parsed;
+    try { parsed = new URL(String(url)); } catch { return { ok: false, error: 'Dirección no válida' }; }
+    const isData = parsed.protocol === 'data:' && /^data:image\//i.test(parsed.href);
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:' && !isData) {
+      return { ok: false, error: 'Solo se descargan direcciones http(s) o imágenes data:' };
+    }
+    // El escáner ya sabe si es foto o vídeo; si no lo dice, se mira la extensión.
+    let k = kind === 'photo' || kind === 'video' ? kind : null;
+    if (!k) {
+      const byExt = classifyMedia(parsed.href);
+      k = byExt === 'videos' ? 'video' : byExt === 'photos' ? 'photo' : (isData ? 'photo' : null);
+    }
+    if (!k) return { ok: false, error: 'Tipo no reconocido (ni imagen ni video)' };
+    const href = parsed.href;
+    return new Promise((resolve) => {
+      const timer = setTimeout(() => {
+        if (pendingMedia.get(href) === entry) pendingMedia.delete(href);
+        resolve({ ok: false, error: 'La descarga no empezó' });
+      }, 30000);
+      // El plazo solo cubre el arranque: una vez empezada, un vídeo grande puede tardar lo que haga falta.
+      const entry = { kind: k, started: () => clearTimeout(timer), resolve: (r) => { clearTimeout(timer); resolve(r); } };
+      pendingMedia.set(href, entry);
+      ses.downloadURL(href);
+    });
   });
 
   ipcMain.handle('get-stats', () => ({ blocked: adblocker.getBlockedCount() }));
