@@ -3,7 +3,7 @@ const { contextBridge, ipcRenderer } = require('electron');
 
 contextBridge.exposeInMainWorld('dynamedia', {
   navigate: (url) => ipcRenderer.send('navigate', url),
-  downloadMedia: (url) => ipcRenderer.invoke('download-media', url),
+  downloadMedia: (url, kind) => ipcRenderer.invoke('download-media', url, kind),
   getStats: () => ipcRenderer.invoke('get-stats'),
   onNavigateUrl: (cb) => ipcRenderer.on('navigate-url', (_e, url) => cb(url)),
   onStats: (cb) => ipcRenderer.on('stats', (_e, stats) => cb(stats)),
