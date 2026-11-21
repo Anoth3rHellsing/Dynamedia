@@ -1,5 +1,5 @@
 // Dynamedia — proceso principal
-const { app, BrowserWindow, ipcMain, session } = require('electron');
+const { app, BrowserWindow, ipcMain, session, dialog } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const adblocker = require('./adblocker');
@@ -11,6 +11,13 @@ const IMAGE_EXT = new Set(['.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp', '.s
 
 // Un window.open solo se acepta si en ese webContents hubo un clic o una tecla hace menos de esto.
 const GESTURE_WINDOW_MS = 1000;
+// Permisos que una web puede pedir; cada uno se pregunta al usuario por origen.
+const PROMPTED_PERMISSIONS = {
+  geolocation: 'conocer tu ubicación',
+  notifications: 'mostrarte notificaciones',
+  midi: 'usar dispositivos MIDI',
+  'clipboard-read': 'leer tu portapapeles',
+};
 
 function classifyMedia(url) {
   let p = '';
@@ -71,9 +78,50 @@ app.whenReady().then(() => {
   adblocker.install(ses);
   adblocker.setOnStatsChange((count) => broadcastStats(count));
 
-  // 2) Anti-redirecciones: bloquear window.open y navegaciones nuevas no iniciadas por el usuario
-  ses.setPermissionRequestHandler((_wc, permission, cb) => {
-    cb(['notifications', 'geolocation', 'midi', 'clipboard-read'].includes(permission));
+  // 2) Permisos: se deniega todo salvo lo que el usuario acepte, origen por origen.
+  //    La respuesta se recuerda hasta cerrar la app. Así una web no lee el portapapeles
+  //    ni la ubicación en silencio.
+  const permissionDecisions = new Map(); // `${origin}|${permission}` -> boolean
+  const pendingPrompts = new Map();      // misma clave -> Promise<boolean>
+  function originOf(url) {
+    try { return new URL(url).origin; } catch { return null; }
+  }
+  function askPermission(webContents, origin, permission) {
+    const key = `${origin}|${permission}`;
+    if (permissionDecisions.has(key)) return Promise.resolve(permissionDecisions.get(key));
+    if (pendingPrompts.has(key)) return pendingPrompts.get(key);
+    const owner = BrowserWindow.fromWebContents(webContents.hostWebContents || webContents);
+    const opts = {
+      type: 'question',
+      buttons: ['Permitir', 'Bloquear'],
+      defaultId: 1,
+      cancelId: 1,
+      title: 'Permiso solicitado',
+      message: `${origin} quiere ${PROMPTED_PERMISSIONS[permission]}.`,
+      detail: 'La decisión se recuerda para este sitio hasta que cierres Dynamedia.',
+    };
+    const p = (owner ? dialog.showMessageBox(owner, opts) : dialog.showMessageBox(opts))
+      .then(({ response }) => response === 0)
+      .catch(() => false)
+      .then((allowed) => {
+        permissionDecisions.set(key, allowed);
+        pendingPrompts.delete(key);
+        return allowed;
+      });
+    pendingPrompts.set(key, p);
+    return p;
+  }
+  ses.setPermissionRequestHandler((webContents, permission, cb, details) => {
+    const origin = originOf((details && details.requestingUrl) || webContents.getURL());
+    if (!origin || origin === 'null' || !PROMPTED_PERMISSIONS[permission]) return cb(false);
+    askPermission(webContents, origin, permission).then(cb, () => cb(false));
+  });
+  // Las comprobaciones síncronas (Notification.permission, navigator.permissions.query)
+  // solo ven «concedido» si el usuario ya lo aceptó.
+  ses.setPermissionCheckHandler((_wc, permission, requestingOrigin) => {
+    if (!PROMPTED_PERMISSIONS[permission]) return true;
+    const origin = originOf(requestingOrigin) || requestingOrigin;
+    return permissionDecisions.get(`${origin}|${permission}`) === true;
   });
 
   // 3) Descargas separadas por tipo
